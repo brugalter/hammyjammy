@@ -9,22 +9,23 @@ class Colors(object):
     BOLD = '\033[1m'
 
     def blue(text):
-        print(Colors.BLUE + text + Colors.WHITE)
+        return Colors.BLUE + text + Colors.WHITE
 
     def bold(text):
-        print(Colors.BOLD + text + Colors.WHITE)
+        return Colors.BOLD + text + Colors.WHITE
 
     def green(text):
-        print(Colors.GREEN + text + Colors.WHITE)
+        return Colors.GREEN + text + Colors.WHITE
 
     def yellow(text):
-        print(Colors.YELLOW + text + Colors.WHITE)
+        return Colors.YELLOW + text + Colors.WHITE
 
     def red(text):
-        print(Colors.RED + text + Colors.WHITE)
+        return Colors.RED + text + Colors.WHITE
 
 
 class Question(object):
+
     def __init__(self, q):
         self.qnumber = q[0]
         self.question = q[1]
@@ -41,9 +42,11 @@ class Question(object):
         return self.qnumber
 
 class Player(object):
+    max_questions = 35
+
     def __init__(self, db_name):
-        self.correct = 0
-        self.incorrect = 0
+        self.correct = []
+        self.incorrect = []
         self.total = 0
         self.db_name = db_name
         self.conn = None
@@ -53,20 +56,38 @@ class Player(object):
         import sys
         self.intro()
         self.setup_db()
-        for i in range(1, 25):
+        for i in range(0, self.max_questions):
             question = self.get_question()
-            self.report(question)
+            self.print_question(question)
             self.get_answer(question)
         self.close_db()
+        self.print_report()
 
-    def report(self, question):
-        Colors.blue("Question: {} Seen: {} Correct: {} Incorrect: {}".format(
+    def print_answer(self, q):
+        print(Colors.bold("{} - {}".format(q.qnumber, q.question)))
+        print("\t{}: {}".format(q.answer, getattr(q, q.answer.lower())))
+
+
+    def print_report(self):
+        print("{}/{}={}".format(len(self.correct), self.total, 100 * (len(self.correct)/self.total)))
+        if len(self.incorrect) > 0:
+            print("\n\n{}\n".format(Colors.bold(Colors.red("Questions you missed"))))
+            for i in self.incorrect:
+                self.print_answer(i)
+
+        if len(self.correct) > 0:
+            print("\n\n{}\n".format(Colors.bold(Colors.blue("Questions you got correct"))))
+            for i in self.correct:
+                self.print_answer(i)
+
+    def print_question(self, question):
+        print(Colors.blue("Question: {} Seen: {} Correct: {} Incorrect: {}".format(
               question.qnumber,
               question.seen,
               question.correct,
-              question.incorrect))
+              question.incorrect)))
         print('------------------------------------------------------')
-        Colors.bold('\n>>> {}\n'.format(question.question))
+        print(Colors.bold('\n>>> {}\n'.format(question.question)))
         print("a: {}".format(question.a))
         print("b: {}".format(question.b))
         print("c: {}".format(question.c))
@@ -77,6 +98,7 @@ class Player(object):
         tmp = self.cur.fetchone()
         question = Question(tmp)
         self.set_seen(question)
+        self.total = self.total + 1
         return question
 
     def set_seen(self, q):
@@ -93,11 +115,13 @@ class Player(object):
 
     def award(self, q):
         self.set_correct(q)
-        Colors.yellow("\n>>> Correct!\n")
+        self.correct.append(q)
+        print(Colors.yellow("\n>>> Correct!\n"))
 
     def participation_award(self, q):
         self.set_incorrect(q)
-        Colors.red('\n>>> You tried and that is all we can really ask of you\n')
+        self.incorrect.append(q)
+        print(Colors.red('\n>>> You tried and that is all we can really ask of you\n'))
 
     def get_answer(self, q):
         import re
